@@ -85,9 +85,16 @@ func (v *Verifier) CheckSMTP(domain, username string) (*SMTP, error) {
 	}
 
 	email := fmt.Sprintf("%s@%s", username, domain)
-	if err := client.Rcpt(email); err == nil {
-		ret.Deliverable = true
+	err = client.Rcpt(email)
+	if err != nil {
+		if e := ParseSMTPError(err); e != nil {
+			if e.Message == ErrServerUnavailable {
+				return nil, err
+			}
+		}
 	}
+
+	ret.Deliverable = true
 
 	return &ret, nil
 }
@@ -225,3 +232,4 @@ func establishConnection(addr string) (net.Conn, error) {
 func establishProxyConnection(addr, proxyURI string) (net.Conn, error) {
 	return socks.Dial(proxyURI)("tcp", addr)
 }
+
